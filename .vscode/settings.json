@@ -1,0 +1,14 @@
+{
+    "cSpell.words": [
+        "apimachinery",
+        "batchv",
+        "clientgoscheme",
+        "corev",
+        "finalizers",
+        "kbatch",
+        "kubebuilder",
+        "metav",
+        "sched",
+        "utilruntime"
+    ]
+}
