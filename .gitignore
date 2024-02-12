@@ -13,3 +13,8 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# kubebulder generated stuff
+bin/
+config/crd/bases/
+config/rbac/role.yaml
