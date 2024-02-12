@@ -137,9 +137,7 @@ func (r *CronJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			continue
 		}
 		if scheduledTimeForJob != nil {
-			if mostRecentTime == nil {
-				mostRecentTime = scheduledTimeForJob
-			} else if mostRecentTime.Before(*scheduledTimeForJob) {
+			if mostRecentTime == nil || mostRecentTime.Before(*scheduledTimeForJob) {
 				mostRecentTime = scheduledTimeForJob
 			}
 		}
@@ -165,7 +163,7 @@ func (r *CronJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return failedJobs[i].Status.StartTime.Before(failedJobs[j].Status.StartTime)
 		})
 		for i, job := range failedJobs {
-			if int32(i) >= int32(len(failedJobs)) - *cronJob.Spec.FailedJobsHistoryLimit {
+			if int32(i) >= int32(len(failedJobs))-*cronJob.Spec.FailedJobsHistoryLimit {
 				break
 			}
 			if err := r.Delete(
@@ -186,7 +184,7 @@ func (r *CronJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return successfulJobs[i].Status.StartTime.Before(successfulJobs[j].Status.StartTime)
 		})
 		for i, job := range successfulJobs {
-			if int32(i) >= int32(len(successfulJobs)) - *cronJob.Spec.SuccessfulJobsHistoryLimit {
+			if int32(i) >= int32(len(successfulJobs))-*cronJob.Spec.SuccessfulJobsHistoryLimit {
 				break
 			}
 			if err := r.Delete(
@@ -262,8 +260,8 @@ func (r *CronJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if cronJob.Spec.ConcurrencyPolicy == batchv1.ForbidConcurrent && len(activeJobs) > 0 {
-        log.V(1).Info("concurrency policy blocks concurrent runs, skipping", "num active", len(activeJobs))
-        return scheduledResult, nil
+		log.V(1).Info("concurrency policy blocks concurrent runs, skipping", "num active", len(activeJobs))
+		return scheduledResult, nil
 	}
 	if cronJob.Spec.ConcurrencyPolicy == batchv1.ReplaceConcurrent {
 		for _, activeJob := range activeJobs {
@@ -273,7 +271,7 @@ func (r *CronJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				client.PropagationPolicy(metav1.DeletePropagationBackground),
 			); client.IgnoreNotFound(err) != nil {
 				log.Error(err, "unable to delete active job", "job", activeJob)
-                return ctrl.Result{}, err
+				return ctrl.Result{}, err
 			}
 		}
 	}
@@ -295,7 +293,7 @@ func (r *CronJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		job.Annotations[scheduledTimeAnnotation] = scheduledTime.Format(time.RFC3339)
 		for k, v := range cronJob.Spec.JobTemplate.Labels {
-			job.Labels[k] =v
+			job.Labels[k] = v
 		}
 		if err := ctrl.SetControllerReference(cronJob, job, r.Scheme); err != nil {
 			return nil, err
