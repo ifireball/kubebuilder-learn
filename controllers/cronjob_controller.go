@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ref "k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -142,6 +143,22 @@ func (r *CronJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 		}
 	}
+
+	if mostRecentTime != nil {
+		cronJob.Status.LastScheduleTime = &metav1.Time{Time: *mostRecentTime}
+	} else {
+		cronJob.Status.LastScheduleTime = nil
+	}
+	cronJob.Status.Active = nil
+	for _, activeJob := range activeJobs {
+		jobRef, err := ref.GetReference(r.Scheme, activeJob)
+		if err != nil {
+			log.Error(err, "unable to make reference to active job", "job", activeJob)
+			continue
+		}
+		cronJob.Status.Active = append(cronJob.Status.Active, *jobRef)
+	}
+
 	log.V(1).Info(
 		"job count",
 		"active jobs", len(activeJobs),
